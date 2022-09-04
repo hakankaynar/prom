@@ -1,0 +1,30 @@
+version: "3.9"
+services:
+  prometheus:
+    depends_on:
+      - "node_exporter"
+      - "my_app"
+    image: "prom/prometheus"
+    volumes:
+      - /home/hakan/PycharmProjects/prometheus-example/docker/prometheus-cfg.yml:/etc/prometheus/prometheus.yml
+    ports:
+      - "9000:9090"
+  node_exporter:
+    image: "prom/node-exporter"
+    ports:
+      - "9100:9100"
+
+  my_app:
+    image: "python:latest"
+    ports:
+      - "10000:10000"
+      - "8001:8001"
+    working_dir: "/etc/my_app"
+    volumes:
+      - /home/hakan/PycharmProjects/prometheus-example/main.py:/etc/my_app/main.py
+      - /home/hakan/PycharmProjects/prometheus-example/requirements.txt:/etc/my_app/requirements.txt
+    command: >
+      bash -c "pip install -r requirements.txt
+      && python main.py"
+      
+
