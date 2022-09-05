@@ -1,30 +1,35 @@
 import http.server
+import sys
 from prometheus_client import start_http_server, Counter, Summary
-import logging
+from urllib.parse import urlparse
 
-REQUEST_COUNT=Counter('app_requests_count', 'Total application http request count', ['app_name', 'context_path'])
-REQUEST_LATENCY=Summary('app_request_latency', 'Application request latency')
-APP_PORT = 10000
-METRICS_PORT = 8001
+VAULT_EP=Summary('vault_ep_usage', 'A vault endpoint usage', ['app_name', 'context_path'])
+REQ_COUNT=Counter('vault_usage', 'Vault request counter', ['app_name'])
 
 
 class HandleRequests(http.server.BaseHTTPRequestHandler):
 
-    @REQUEST_LATENCY.time()
     def do_GET(self):
-        logging.info("Handling get request")
-        REQUEST_COUNT.labels("my_app", self.path).inc()
+        REQ_COUNT.labels('my_app').inc()
+        vp = self.__get_vault_path()
+        VAULT_EP.labels('my_app', vp).time()
+        VAULT_EP.labels('my_app', vp).observe(1)
         self.send_response(200)
         self.send_header("Content-type", "text/html")
         self.end_headers()
-        self.wfile.write(bytes(
-            "<html><head><title>First Application</title></head><body style='color: #333; margin-top: 30px;'><center><h2>Welcome to our first Prometheus-Python application.</center></h2></body></html>",
-            "utf-8"))
+        self.wfile.write(bytes("Vault Ep POC App","utf-8"))
         self.wfile.close()
+
+    def __get_vault_path(self):
+        try:
+            query = urlparse(self.path).query
+            query_components = dict(qc.split("=") for qc in query.split("&"))
+            return query_components["vp"]
+        except:
+            return '/'
 
 
 if __name__ == "__main__":
-    logging.info("Starting the application")
-    start_http_server(METRICS_PORT)
-    server = http.server.HTTPServer(('my_app', APP_PORT), HandleRequests)
+    start_http_server(int(sys.argv[3]))
+    server = http.server.HTTPServer((sys.argv[1], int(sys.argv[2])), HandleRequests)
     server.serve_forever()

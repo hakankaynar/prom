@@ -3,10 +3,11 @@ services:
   prometheus:
     depends_on:
       - "node_exporter"
-      - "my_app"
+      - "node1"
+      - "node2"
     image: "prom/prometheus"
     volumes:
-      - /home/hakan/PycharmProjects/prometheus-example/docker/prometheus-cfg.yml:/etc/prometheus/prometheus.yml
+      - ./prometheus-cfg.yml:/etc/prometheus/prometheus.yml
     ports:
       - "9000:9090"
   node_exporter:
@@ -14,17 +15,36 @@ services:
     ports:
       - "9100:9100"
 
-  my_app:
+  grafana:
+    image: "grafana/grafana"
+    ports:
+      - "3000:3000"
+    depends_on:
+      - "prometheus"
+  node1:
     image: "python:latest"
     ports:
-      - "10000:10000"
+      - "8000:8000"
       - "8001:8001"
     working_dir: "/etc/my_app"
     volumes:
-      - /home/hakan/PycharmProjects/prometheus-example/main.py:/etc/my_app/main.py
-      - /home/hakan/PycharmProjects/prometheus-example/requirements.txt:/etc/my_app/requirements.txt
+      - ../main.py:/etc/my_app/main.py
+      - ../requirements.txt:/etc/my_app/requirements.txt
     command: >
       bash -c "pip install -r requirements.txt
-      && python main.py"
+      && python main.py node1 8000 8001"
+
+  node2:
+    image: "python:latest"
+    ports:
+      - "8500:8500"
+      - "8501:8501"
+    working_dir: "/etc/my_app"
+    volumes:
+      - ../main.py:/etc/my_app/main.py
+      - ../requirements.txt:/etc/my_app/requirements.txt
+    command: >
+      bash -c "pip install -r requirements.txt
+      && python main.py node2 8500 8501"
       
 
